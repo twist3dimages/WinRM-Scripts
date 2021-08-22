@@ -1,7 +1,7 @@
 param( [string]$Path, [switch]$AcceptEula )
 
-$version = "WinRM-Collect (20210811)"
-$DiagVersion = "WinRM-Diag (20210810)"
+$version = "WinRM-Collect (20210820)"
+$DiagVersion = "WinRM-Diag (20210820)"
 
 # by Gianni Bragante - gbrag@microsoft.com
 
@@ -899,6 +899,15 @@ if ($svccert.value ) {
   ChkCert -cert $svccert.value -descr "Service" -store "Store = 'My'"
 }
 
+$remoteaccess = Get-Item WSMan:\localhost\Service\AllowRemoteAccess
+if ($remoteaccess.Value -eq "true") {
+  Write-Diag "[INFO] AllowRemoteAccess = true"
+} elseif ($remoteaccess.Value -eq "false") {
+  Write-Diag "[ERROR] AllowRemoteAccess = false, this machine will not accept remote WinRM connections"
+} else {
+  Write-Diag "[ERROR] AllowRemoteAccess has an invalid value"
+}
+
 $ipfilter = Get-Item WSMan:\localhost\Service\IPv4Filter
 if ($ipfilter.Value) {
   if ($ipfilter.Value -eq "*") {
@@ -995,6 +1004,10 @@ if (Test-Path -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventFor
         }
       }
     } 
+  }
+  $RegKey = (Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding')
+  if ($regkey.MaxForwardingRate) {
+    Write-Diag "[ERROR] MaxForwardingRate is configured, this feature does not work. Please remove this setting and see bug 33554568."
   }
 } else {
   $isForwarder = $false
